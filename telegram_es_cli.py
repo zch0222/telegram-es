@@ -320,8 +320,8 @@ async def scrape_messages(client, channel_name, min_id, max_id):
         message_count += 1
         print(f"{message_count} / {total_message_count} messages pulled")
 
-        # 每100条批量保存一次
-        if len(batch) >= 100:
+        # 每10条批量保存一次
+        if len(batch) >= 10:
             save_to_es(batch)
             save_to_mysql(batch)
             total_count += len(batch)
