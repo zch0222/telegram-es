@@ -232,13 +232,13 @@ def process_message(msg: Message, chat_id: str):
     if msg.media:
         media_type = str(msg.media).split('.')[-1].split("'")[0].lower()
 
-    print(msg.from_id)
-    print(f"message_id:{int(msg.id)}\n"
-          f"chat_id:{chat_id}\n"
-          f"date:{msg.date}\n"
-          f"sender_id:{msg.sender_id if hasattr(msg, 'sender_id') else None}\n"
-          f"views:{msg.views}\n"
-          f"forwards:{msg.forwards}\n")
+    # print(msg.from_id)
+    # print(f"message_id:{int(msg.id)}\n"
+    #       f"chat_id:{chat_id}\n"
+    #       f"date:{msg.date}\n"
+    #       f"sender_id:{msg.sender_id if hasattr(msg, 'sender_id') else None}\n"
+    #       f"views:{msg.views}\n"
+    #       f"forwards:{msg.forwards}\n")
 
     # 构建消息文档
     doc = {
@@ -302,6 +302,10 @@ async def scrape_messages(client, channel_name, min_id, max_id):
     total_count = 0
     batch = []
     entity = await client.get_entity(channel_name)
+    message_count = 0
+    total_message_count = 0
+    if real_max_id:
+        total_message_count = real_max_id - real_min_id + 1
     async for message in client.iter_messages(
             entity=entity,
             min_id=real_min_id,
@@ -313,6 +317,8 @@ async def scrape_messages(client, channel_name, min_id, max_id):
 
         doc = process_message(message, channel_name)
         batch.append(doc)
+        message_count += 1
+        print(f"{message_count} / {total_message_count} messages pulled")
 
         # 每100条批量保存一次
         if len(batch) >= 100:
@@ -344,7 +350,8 @@ async def main():
     create_mysql_table()
 
     # 处理多个聊天
-    chat_ids = [str(x.strip()) for x in args.chats.split(',')]
+    # chat_ids = [str(x.strip()) for x in args.chats.split(',')]
+    chat_ids = [args.chats]
 
     async with TelegramClient('session_name', API_ID, API_HASH) as client:
         for chat_id in chat_ids:
