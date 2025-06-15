@@ -23,7 +23,7 @@ MYSQL_DB = os.getenv('MYSQL_DATABASE')
 print(ES_HOST)
 
 # 初始化Elasticsearch和MySQL连接
-es = Elasticsearch(ES_HOST)
+es = Elasticsearch(ES_HOST, timeout=120)
 mysql_conn = pymysql.connect(
     host=MYSQL_HOST,
     user=MYSQL_USER,
