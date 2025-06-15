@@ -30,8 +30,9 @@ mysql_conn = pymysql.connect(
     password=MYSQL_PASS,
     database=MYSQL_DB,
     charset='utf8mb4',
-    connect_timeout=1200,
-    read_timeout=1200
+    connect_timeout=12000,
+    read_timeout=12000,
+    write_timeout=12000,
 )
 
 
