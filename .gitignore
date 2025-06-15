@@ -1,0 +1,37 @@
+/venv
+*.session
+.env
+.*
+
+__pycache__/
+
+# PyCharm 项目文件
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# PyCharm 缓存和索引
+.idea_modules/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/shelf/
+.idea/.name
+
+# PyCharm 运行/调试配置
+.idea/runConfigurations/
+.idea/deployment.xml
+
+# PyCharm 数据源（数据库工具）
+.idea/dataSources/
+.idea/dataSources.local.xml
+
+# PyCharm 前端工具（如 JavaScript）
+.idea/jsLibraryMappings.xml
+
+# PyCharm 插件
+.idea/copyright/
+.idea/scopes/
+.idea/misc.xml
+.idea/vcs.xml
