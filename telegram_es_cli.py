@@ -197,7 +197,7 @@ def create_mysql_table():
                            media_type
                            VARCHAR
                        (
-                           50
+                           800
                        ) COMMENT '媒体类型(photo/video/document等)',
                            message_link VARCHAR(800) COMMENT '消息链接',
                            PRIMARY KEY
