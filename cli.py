@@ -69,7 +69,44 @@ def ensure_mysql_connection():
             write_timeout=12000,
         )
 
-# ... existing code ...
+# 消息处理函数
+def process_message(msg: Message, chat_id: str):
+    """处理单条消息，提取关键信息"""
+    # 提取媒体类型
+    media_type = None
+    if msg.media:
+        media_type = str(msg.media).split('.')[-1].split("'")[0].lower()
+
+    # 构建消息文档
+    doc = {
+        "message_id": msg.id,
+        "chat_id": chat_id,
+        "message": msg.message or "",
+        "date": msg.date,
+        "sender_id": msg.sender_id if hasattr(msg, 'sender_id') else None,
+        "views": msg.views if hasattr(msg, 'views') else 0,
+        "forwards": msg.forwards if hasattr(msg, 'forwards') else 0,
+        "media_type": media_type,
+        "message_link": f"https://t.me/{chat_id[1:]}/{msg.id}" if chat_id.startswith('@') else f"https://t.me/c/{chat_id}/{msg.id}"
+    }
+
+    # 处理HTML特殊字符
+    if doc['message']:
+        doc['message'] = re.sub(r'<[^>]+>', '', doc['message'])
+
+    return doc
+
+# 存储到Elasticsearch
+def save_to_es(docs):
+    actions = [
+        {
+            "_index": "telegram_messages",
+            "_id": f"{doc['chat_id']}_{doc['message_id']}",
+            "_source": doc
+        }
+        for doc in docs
+    ]
+    bulk(es, actions)
 
 # 订阅新消息的处理函数
 async def handle_new_message(event, chat_name):
@@ -81,21 +118,59 @@ async def handle_new_message(event, chat_name):
     try:
         message = event.message
         if not isinstance(message, Message):
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 跳过非消息事件: {type(event.message)}")
             return
+        
+        # 打印收到消息的详细信息
+        print(f"\n{'='*60}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 收到新消息")
+        print(f"频道/群组: {chat_name}")
+        print(f"消息ID: {message.id}")
+        print(f"发送时间: {message.date}")
+        print(f"发送者ID: {message.sender_id if hasattr(message, 'sender_id') else '未知'}")
+        
+        # 打印消息内容
+        if message.message:
+            print(f"消息内容: {message.message}")
+        else:
+            print("消息内容: [无文本内容]")
+        
+        # 打印媒体信息
+        if message.media:
+            media_type = str(message.media).split('.')[-1].split("'")[0].lower()
+            print(f"媒体类型: {media_type}")
+        else:
+            print("媒体类型: 无")
+        
+        # 打印统计信息
+        if hasattr(message, 'views') and message.views:
+            print(f"查看次数: {message.views}")
+        if hasattr(message, 'forwards') and message.forwards:
+            print(f"转发次数: {message.forwards}")
             
         # 处理消息
         doc = process_message(message, chat_name)
         
         # 保存到数据库和ES
-        save_to_es([doc])
-        save_to_mysql([doc])
+        try:
+            save_to_es([doc])
+            print("✓ 已保存到 Elasticsearch")
+        except Exception as e:
+            print(f"✗ 保存到 Elasticsearch 失败: {e}")
+            
+        try:
+            save_to_mysql([doc])
+            print("✓ 已保存到 MySQL")
+        except Exception as e:
+            print(f"✗ 保存到 MySQL 失败: {e}")
         
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 新消息已保存: {chat_name} - ID:{message.id}")
-        if doc['message']:
-            print(f"内容预览: {doc['message'][:100]}...")
+        print(f"消息链接: {doc['message_link']}")
+        print(f"{'='*60}\n")
             
     except Exception as e:
-        print(f"处理新消息时出错: {e}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 处理新消息时出错: {e}")
+        import traceback
+        traceback.print_exc()
 
 # 订阅频道/群组新消息的主函数
 async def subscribe_messages(client, chat_names):
@@ -176,8 +251,6 @@ async def subscribe_batch_messages(client, chat_names):
     finally:
         print("批量订阅已停止")
 
-# ... existing code ...
-
 # 修改存储到MySQL的函数
 def save_to_mysql(docs):
     ensure_mysql_connection()  # 确保连接有效
@@ -195,8 +268,6 @@ def save_to_mysql(docs):
               """
         cursor.executemany(sql, docs)
     mysql_conn.commit()
-
-# ... existing code ...
 
 # 创建Elasticsearch索引（带中文分词）
 def create_es_index():
